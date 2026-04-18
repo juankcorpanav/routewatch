@@ -1,12 +1,11 @@
 const fs = require('fs');
 const path = require('path');
+const { assertValidSnapshot } = require('./validate');
 
-const SNAPSHOT_DIR = '.routewatch';
+const SNAPSHOT_DIR = path.resolve(process.cwd(), '.routewatch', 'snapshots');
 
 function ensureSnapshotDir() {
-  if (!fs.existsSync(SNAPSHOT_DIR)) {
-    fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
-  }
+  fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
 }
 
 function saveSnapshot(name, routes) {
@@ -16,25 +15,29 @@ function saveSnapshot(name, routes) {
     timestamp: new Date().toISOString(),
     routes,
   };
-  const filePath = path.join(SNAPSHOT_DIR, `${name}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
-  return filePath;
+  assertValidSnapshot(snapshot);
+  const filepath = path.join(SNAPSHOT_DIR, `${name}.json`);
+  fs.writeFileSync(filepath, JSON.stringify(snapshot, null, 2));
+  return filepath;
 }
 
 function loadSnapshot(name) {
-  const filePath = path.join(SNAPSHOT_DIR, `${name}.json`);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Snapshot "${name}" not found at ${filePath}`);
+  const filepath = path.join(SNAPSHOT_DIR, `${name}.json`);
+  if (!fs.existsSync(filepath)) {
+    throw new Error(`Snapshot '${name}' not found`);
   }
-  const raw = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw);
+  const raw = fs.readFileSync(filepath, 'utf8');
+  const snapshot = JSON.parse(raw);
+  assertValidSnapshot(snapshot);
+  return snapshot;
 }
 
 function listSnapshots() {
-  ensureSnapshotDir();
-  return fs.readdirSync(SNAPSHOT_DIR)
+  if (!fs.existsSync(SNAPSHOT_DIR)) return [];
+  return fs
+    .readdirSync(SNAPSHOT_DIR)
     .filter(f => f.endsWith('.json'))
-    .map(f => f.replace('.json', ''));
+    .map(f => f.replace(/\.json$/, ''));
 }
 
-module.exports = { saveSnapshot, loadSnapshot, listSnapshots };
+module.exports = { ensureSnapshotDir, saveSnapshot, loadSnapshot, listSnapshots };
