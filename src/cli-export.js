@@ -4,6 +4,8 @@ const { loadSnapshot } = require('./snapshot');
 const { diffSnapshots } = require('./diff');
 const { exportDiff } = require('./export');
 
+const VALID_FORMATS = ['json', 'csv', 'markdown'];
+
 function printExportUsage() {
   console.log('Usage: routewatch export <snapshot-a> <snapshot-b> [options]');
   console.log('');
@@ -37,6 +39,11 @@ async function handleExport(args) {
 
   if (!opts.snapshotA || !opts.snapshotB) {
     printExportUsage();
+    process.exit(1);
+  }
+
+  if (!VALID_FORMATS.includes(opts.format)) {
+    console.error(`Error: unsupported format "${opts.format}". Valid formats: ${VALID_FORMATS.join(', ')}`);
     process.exit(1);
   }
 
