@@ -37,6 +37,15 @@ test('show errors without filename', () => {
   exit.mockRestore();
 });
 
+test('show errors with nonexistent filename', () => {
+  const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  const exit = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });
+  expect(() => parseChangelogArgs(['show', 'nonexistent-file.json'])).toThrow();
+  expect(spy).toHaveBeenCalled();
+  spy.mockRestore();
+  exit.mockRestore();
+});
+
 test('printChangelogUsage called on unknown command', () => {
   const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
   const exit = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });
