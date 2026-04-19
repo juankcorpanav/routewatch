@@ -15,6 +15,10 @@ function computeDeprecatedPenalty(stats) {
 }
 
 function buildScore(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    throw new TypeError('buildScore requires a valid snapshot object');
+  }
+
   const lintResults = lintSnapshot(snapshot);
   const stats = buildStats(snapshot);
 
