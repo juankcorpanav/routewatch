@@ -29,6 +29,13 @@ async function handleScore(args) {
   const name = positional[0];
   const jsonMode = flags.includes('--json');
 
+  // Warn about unrecognized flags
+  const knownFlags = ['--json'];
+  const unknownFlags = flags.filter((f) => !knownFlags.includes(f));
+  if (unknownFlags.length) {
+    console.warn(`Warning: unrecognized flag(s): ${unknownFlags.join(', ')}`);
+  }
+
   let snapshot;
   try {
     snapshot = await loadSnapshot(name);
