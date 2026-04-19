@@ -29,7 +29,12 @@ function parseWatchArgs(argv) {
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--interval' && args[i + 1]) {
-      options.interval = parseInt(args[++i], 10);
+      const parsed = parseInt(args[++i], 10);
+      if (isNaN(parsed) || parsed <= 0) {
+        console.error(`[routewatch] Invalid interval value: "${args[i]}". Must be a positive integer.`);
+        process.exit(1);
+      }
+      options.interval = parsed;
     } else if (args[i] === '--method' && args[i + 1]) {
       options.filters.method = args[++i];
     } else if (args[i] === '--prefix' && args[i + 1]) {
