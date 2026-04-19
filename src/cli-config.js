@@ -21,7 +21,8 @@ function handleConfig(args) {
     const config = loadConfig();
     console.log('\nCurrent configuration:\n');
     for (const [k, v] of Object.entries(config)) {
-      console.log(`  ${k}: ${v}`);
+      const isDefault = v === DEFAULTS[k];
+      console.log(`  ${k}: ${v}${isDefault ? ' (default)' : ''}`);
     }
     console.log();
     return;
@@ -40,6 +41,11 @@ function handleConfig(args) {
 
   if (sub === 'set') {
     if (!key || value === undefined) { printConfigUsage(); return; }
+    if (!(key in DEFAULTS)) {
+      console.error(`Unknown config key: ${key}`);
+      console.error(`Valid keys: ${Object.keys(DEFAULTS).join(', ')}`);
+      process.exit(1);
+    }
     try {
       const parsed = isNaN(value) ? value : Number(value);
       setConfigValue(key, parsed);
