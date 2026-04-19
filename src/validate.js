@@ -9,6 +9,8 @@ function validateRoute(route, index) {
   }
   if (!route.path || typeof route.path !== 'string') {
     errors.push(`Route[${index}]: missing or invalid 'path'`);
+  } else if (!route.path.startsWith('/')) {
+    errors.push(`Route[${index}]: 'path' must start with '/'`);
   }
   if (!route.method || typeof route.method !== 'string') {
     errors.push(`Route[${index}]: missing or invalid 'method'`);
