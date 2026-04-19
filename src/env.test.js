@@ -49,7 +49,21 @@ test('listEnvs returns all environments', () => {
   expect(list.map(e => e.name)).toContain('staging');
 });
 
+test('listEnvs returns empty array when no environments exist', () => {
+  const list = listEnvs();
+  expect(Array.isArray(list)).toBe(true);
+  expect(list.length).toBe(0);
+});
+
 test('setEnv throws on missing args', () => {
   expect(() => setEnv('', 'url')).toThrow();
   expect(() => setEnv('name', '')).toThrow();
+});
+
+test('setEnv overwrites existing environment with same name', () => {
+  setEnv('prod', 'https://api.example.com');
+  setEnv('prod', 'https://api-v2.example.com');
+  const env = getEnv('prod');
+  expect(env.url).toBe('https://api-v2.example.com');
+  expect(listEnvs().length).toBe(1);
 });
