@@ -1,69 +1,130 @@
-const fs = require('fs');
-const path = require('path');
-const { addSnapshotToGroup, removeSnapshotFromGroup, getGroup, listGroups, deleteGroup, loadGroups } = require('./snapshot-group');
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import {
+  loadGroups,
+  saveGroups,
+  addSnapshotToGroup,
+  removeSnapshotFromGroup,
+  getGroup,
+  listGroups,
+  deleteGroup
+} from './snapshot-group.js';
 
-const GROUPS_FILE = path.join('.routewatch', 'groups.json');
+const TEST_DIR = '.routewatch-test-groups';
 
 function cleanup() {
-  if (fs.existsSync(GROUPS_FILE)) fs.unlinkSync(GROUPS_FILE);
+  if (fs.existsSync(TEST_DIR)) {
+    fs.rmSync(TEST_DIR, { recursive: true });
+  }
 }
 
-beforeEach(cleanup);
-afterAll(cleanup);
+describe('snapshot-group', () => {
+  beforeEach(() => {
+    cleanup();
+    process.env.ROUTEWATCH_DIR = TEST_DIR;
+  });
 
-test('addSnapshotToGroup creates group and adds member', () => {
-  const members = addSnapshotToGroup('prod', 'snap-1');
-  expect(members).toContain('snap-1');
-  const groups = loadGroups();
-  expect(groups['prod']).toEqual(['snap-1']);
-});
+  afterEach(() => {
+    cleanup();
+    delete process.env.ROUTEWATCH_DIR;
+  });
 
-test('addSnapshotToGroup does not duplicate members', () => {
-  addSnapshotToGroup('prod', 'snap-1');
-  const members = addSnapshotToGroup('prod', 'snap-1');
-  expect(members.length).toBe(1);
-});
+  describe('loadGroups / saveGroups', () => {
+    it('returns empty object when no groups file exists', () => {
+      const groups = loadGroups();
+      expect(groups).toEqual({});
+    });
 
-test('addSnapshotToGroup adds multiple members', () => {
-  addSnapshotToGroup('prod', 'snap-1');
-  const members = addSnapshotToGroup('prod', 'snap-2');
-  expect(members).toEqual(['snap-1', 'snap-2']);
-});
+    it('persists and loads groups correctly', () => {
+      const data = { staging: ['snap-a', 'snap-b'], prod: ['snap-c'] };
+      saveGroups(data);
+      const loaded = loadGroups();
+      expect(loaded).toEqual(data);
+    });
+  });
 
-test('removeSnapshotFromGroup removes member', () => {
-  addSnapshotToGroup('prod', 'snap-1');
-  addSnapshotToGroup('prod', 'snap-2');
-  const members = removeSnapshotFromGroup('prod', 'snap-1');
-  expect(members).toEqual(['snap-2']);
-});
+  describe('addSnapshotToGroup', () => {
+    it('creates a new group and adds a snapshot', () => {
+      addSnapshotToGroup('staging', 'snap-1');
+      const groups = loadGroups();
+      expect(groups.staging).toContain('snap-1');
+    });
 
-test('removeSnapshotFromGroup deletes group when empty', () => {
-  addSnapshotToGroup('prod', 'snap-1');
-  removeSnapshotFromGroup('prod', 'snap-1');
-  expect(getGroup('prod')).toBeNull();
-});
+    it('appends to an existing group', () => {
+      addSnapshotToGroup('staging', 'snap-1');
+      addSnapshotToGroup('staging', 'snap-2');
+      const groups = loadGroups();
+      expect(groups.staging).toEqual(['snap-1', 'snap-2']);
+    });
 
-test('removeSnapshotFromGroup returns null for missing group', () => {
-  expect(removeSnapshotFromGroup('missing', 'snap-1')).toBeNull();
-});
+    it('does not add duplicate snapshots to a group', () => {
+      addSnapshotToGroup('staging', 'snap-1');
+      addSnapshotToGroup('staging', 'snap-1');
+      const groups = loadGroups();
+      expect(groups.staging.filter(s => s === 'snap-1').length).toBe(1);
+    });
+  });
 
-test('getGroup returns null for unknown group', () => {
-  expect(getGroup('nope')).toBeNull();
-});
+  describe('removeSnapshotFromGroup', () => {
+    it('removes a snapshot from a group', () => {
+      addSnapshotToGroup('staging', 'snap-1');
+      addSnapshotToGroup('staging', 'snap-2');
+      removeSnapshotFromGroup('staging', 'snap-1');
+      const groups = loadGroups();
+      expect(groups.staging).not.toContain('snap-1');
+      expect(groups.staging).toContain('snap-2');
+    });
 
-test('listGroups returns all groups', () => {
-  addSnapshotToGroup('a', 'snap-1');
-  addSnapshotToGroup('b', 'snap-2');
-  const groups = listGroups();
-  expect(Object.keys(groups)).toEqual(expect.arrayContaining(['a', 'b']));
-});
+    it('returns false when group does not exist', () => {
+      const result = removeSnapshotFromGroup('nonexistent', 'snap-1');
+      expect(result).toBe(false);
+    });
 
-test('deleteGroup removes group', () => {
-  addSnapshotToGroup('prod', 'snap-1');
-  expect(deleteGroup('prod')).toBe(true);
-  expect(getGroup('prod')).toBeNull();
-});
+    it('returns false when snapshot is not in the group', () => {
+      addSnapshotToGroup('staging', 'snap-1');
+      const result = removeSnapshotFromGroup('staging', 'snap-99');
+      expect(result).toBe(false);
+    });
+  });
 
-test('deleteGroup returns false for missing group', () => {
-  expect(deleteGroup('ghost')).toBe(false);
+  describe('getGroup', () => {
+    it('returns snapshots for an existing group', () => {
+      addSnapshotToGroup('prod', 'snap-a');
+      const members = getGroup('prod');
+      expect(members).toContain('snap-a');
+    });
+
+    it('returns null for a non-existent group', () => {
+      const members = getGroup('ghost');
+      expect(members).toBeNull();
+    });
+  });
+
+  describe('listGroups', () => {
+    it('returns all group names', () => {
+      addSnapshotToGroup('alpha', 'snap-1');
+      addSnapshotToGroup('beta', 'snap-2');
+      const names = listGroups();
+      expect(names).toContain('alpha');
+      expect(names).toContain('beta');
+    });
+
+    it('returns empty array when no groups exist', () => {
+      expect(listGroups()).toEqual([]);
+    });
+  });
+
+  describe('deleteGroup', () => {
+    it('removes an existing group entirely', () => {
+      addSnapshotToGroup('temp', 'snap-x');
+      deleteGroup('temp');
+      expect(getGroup('temp')).toBeNull();
+    });
+
+    it('returns false when group does not exist', () => {
+      const result = deleteGroup('missing');
+      expect(result).toBe(false);
+    });
+  });
 });
