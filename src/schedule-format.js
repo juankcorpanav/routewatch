@@ -21,4 +21,15 @@ function formatScheduleNotFound(name) {
   return `${c('red', 'Error:')} Schedule ${c('cyan', name)} not found.`;
 }
 
-module.exports = { formatScheduleList, formatScheduleAdded, formatScheduleRemoved, formatScheduleNotFound };
+/**
+ * Formats a message for when a schedule is triggered/executed.
+ * @param {object} entry - The schedule entry that was triggered.
+ * @param {string} entry.name - The schedule name.
+ * @param {string} entry.snapshotName - The snapshot the schedule targets.
+ * @returns {string} Formatted trigger message.
+ */
+function formatScheduleTriggered(entry) {
+  return `${c('yellow', '⏱')} Schedule ${c('cyan', entry.name)} triggered snapshot ${c('green', entry.snapshotName)}.`;
+}
+
+module.exports = { formatScheduleList, formatScheduleAdded, formatScheduleRemoved, formatScheduleNotFound, formatScheduleTriggered };
