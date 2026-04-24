@@ -16,7 +16,21 @@ function buildRouteMap(routes) {
   return map;
 }
 
+/**
+ * Compares two route snapshots and returns the added, removed, and changed routes.
+ *
+ * @param {object} oldSnapshot - The previous snapshot, expected to have a `routes` array.
+ * @param {object} newSnapshot - The current snapshot, expected to have a `routes` array.
+ * @returns {{ added: object[], removed: object[], changed: object[] }}
+ */
 function diffSnapshots(oldSnapshot, newSnapshot) {
+  if (!oldSnapshot || typeof oldSnapshot !== 'object') {
+    throw new TypeError('oldSnapshot must be a non-null object');
+  }
+  if (!newSnapshot || typeof newSnapshot !== 'object') {
+    throw new TypeError('newSnapshot must be a non-null object');
+  }
+
   const oldMap = buildRouteMap(oldSnapshot.routes || []);
   const newMap = buildRouteMap(newSnapshot.routes || []);
 
@@ -46,6 +60,14 @@ function diffSnapshots(oldSnapshot, newSnapshot) {
   return { added, removed, changed };
 }
 
+/**
+ * Returns a list of field-level changes between two route objects,
+ * ignoring the identity fields `method` and `path`.
+ *
+ * @param {object} oldRoute
+ * @param {object} newRoute
+ * @returns {{ field: string, from: any, to: any }[]}
+ */
 function getFieldChanges(oldRoute, newRoute) {
   const ignoredKeys = new Set(['method', 'path']);
   const allKeys = new Set([...Object.keys(oldRoute), ...Object.keys(newRoute)]);
